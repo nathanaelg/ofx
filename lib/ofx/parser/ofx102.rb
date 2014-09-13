@@ -6,9 +6,9 @@ module OFX
       ACCOUNT_TYPES = {
         "CHECKING" => :checking
       }
-      
+
       TRANSACTION_TYPES = [
-        'ATM', 'CASH', 'CHECK', 'CREDIT', 'DEBIT', 'DEP', 'DIRECTDEBIT', 'DIRECTDEP', 'DIV', 
+        'ATM', 'CASH', 'CHECK', 'CREDIT', 'DEBIT', 'DEP', 'DIRECTDEBIT', 'DIRECTDEP', 'DIV',
         'FEE', 'INT', 'OTHER', 'PAYMENT', 'POS', 'REPEATPMT', 'SRVCHG', 'XFER'
       ].inject({}) { |hash, tran_type| hash[tran_type] = tran_type.downcase.to_sym; hash }
 
@@ -50,11 +50,17 @@ module OFX
 
       private
       def build_account
+        if html.search("creditcardmsgsrsv1").to_s.empty?
+          account_type = ACCOUNT_TYPES[html.search("bankacctfrom > accttype").inner_text.to_s.upcase]
+        else
+          account_type = :creditcard
+        end
+
         OFX::Account.new({
           :bank_id           => html.search("bankacctfrom > bankid").inner_text,
           :branch_id         => html.search("bankacctfrom > branchid").inner_text,
           :id                => html.search("bankacctfrom > acctid, ccacctfrom > acctid").inner_text,
-          :type              => ACCOUNT_TYPES[html.search("bankacctfrom > accttype").inner_text.to_s.upcase],
+          :type              => account_type,
           :transactions      => build_transactions,
           :balance           => build_balance,
           :available_balance => build_available_balance,
